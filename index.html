@@ -1,14 +1,132 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Hello World</title>
-  <link href='/style.css' rel='stylesheet'>
+  <base target="_top">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .section { margin-bottom: 20px; }
+    .date-row { margin-bottom: 10px; }
+    input { padding: 5px; margin-right: 10px; }
+    button { padding: 6px 12px; cursor: pointer; }
+    .total-box { font-weight: bold; margin-top: 10px; }
+  </style>
 </head>
 <body>
-  <h1>Hello, world!</h1>
-  <button onclick="console.log('hello');">Press me</button>
-  <script defer type="text/javascript" src="/main.js"></script>
+
+  <h2>간병인 파견 확인서 생성</h2>
+
+  <div class="section">
+    <label>회원번호:</label>
+    <input type="text" id="memberNo">
+  </div>
+
+  <div class="section">
+    <label>회원등록일자:</label>
+    <input type="date" id="registerDate">
+  </div>
+
+  <div class="section">
+    <label>간병 기간:</label>
+    <div id="dateContainer">
+      <div class="date-row">
+        시작일: <input type="date" class="start">
+        종료일: <input type="date" class="end">
+        일수: <span class="days">0</span>
+      </div>
+    </div>
+    <button type="button" onclick="addRow()">+ 기간 추가</button>
+    <div class="total-box">총 일수: <span id="totalDays">0</span> 일</div>
+  </div>
+
+  <div class="section">
+    <label>결제금액:</label>
+    <input type="text" id="amount">
+  </div>
+
+  <button onclick="sendData()">확인서 생성</button>
+
+<script>
+
+function calculateDays(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start);
+  const e = new Date(end);
+  if (e < s) return 0;
+  return Math.floor((e - s) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+function updateAll() {
+  const rows = document.querySelectorAll(".date-row");
+  let total = 0;
+  rows.forEach(row => {
+    const start = row.querySelector(".start").value;
+    const end = row.querySelector(".end").value;
+    const days = calculateDays(start, end);
+    row.querySelector(".days").innerText = days;
+    total += days;
+  });
+  document.getElementById("totalDays").innerText = total;
+}
+
+function attachEvents(row) {
+  row.querySelector(".start").addEventListener("change", updateAll);
+  row.querySelector(".end").addEventListener("change", updateAll);
+}
+
+function addRow() {
+  const container = document.getElementById("dateContainer");
+  const newRow = document.createElement("div");
+  newRow.className = "date-row";
+  newRow.innerHTML = `
+    시작일: <input type="date" class="start">
+    종료일: <input type="date" class="end">
+    일수: <span class="days">0</span>
+  `;
+  container.appendChild(newRow);
+  attachEvents(newRow);
+}
+
+// 초기 행 이벤트 연결
+document.querySelectorAll(".date-row").forEach(attachEvents);
+
+function sendData() {
+  const memberNo = document.getElementById("memberNo").value;
+  const registerDate = document.getElementById("registerDate").value;
+  const amount = document.getElementById("amount").value;
+  const totalDays = document.getElementById("totalDays").innerText;
+
+  if (!memberNo) return alert("회원번호를 입력하세요.");
+  if (!registerDate) return alert("회원등록일자를 입력하세요.");
+  if (!amount) return alert("결제금액을 입력하세요.");
+
+  const rows = document.querySelectorAll(".date-row");
+  let periods = [];
+  rows.forEach(row => {
+    const start = row.querySelector(".start").value;
+    const end = row.querySelector(".end").value;
+    if (start && end) periods.push({ start, end });
+  });
+
+  if (periods.length === 0) return alert("간병 기간을 입력하세요.");
+
+  // 확인서 두 개 채운 뒤 → PDF 저장
+  google.script.run
+    .withFailureHandler(err => alert(err.message))
+    .withSuccessHandler(() => {
+      google.script.run
+        .withFailureHandler(err => alert(err.message))
+        .withSuccessHandler(() => {
+          google.script.run
+            .withFailureHandler(err => alert(err.message))
+            .withSuccessHandler(folderUrl => {
+              alert("완료되었습니다!\n폴더 링크: " + folderUrl);
+            })
+            .PDF저장(memberNo);
+        })
+        .간병인파견확인서생성(memberNo, amount, periods, totalDays);
+    })
+    .회원가입확인서생성(memberNo, registerDate);
+}
+</script>
 </body>
 </html>
